@@ -1,0 +1,12 @@
+name: Cop-Search
+title: Cop-Search
+username:
+account: samhelmey
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 658448
+bundleId: 1828249
+url: https://samhelmey.shinyapps.io/Cop-Search/
+when: 1548132487.00232
+asMultiple: FALSE
+asStatic: FALSE
