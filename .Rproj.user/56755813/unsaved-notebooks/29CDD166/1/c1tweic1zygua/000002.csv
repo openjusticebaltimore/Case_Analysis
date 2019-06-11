@@ -1,0 +1,13 @@
+"0","SELECT 
+  cases.case_number, 
+  case_type, 
+  filing_date, 
+  name, 
+  connection, 
+  officer_id,
+  COALESCE(name, officer_id) AS name2
+FROM cases
+INNER JOIN dscr_related_persons AS people
+ON cases.case_number = people.case_number
+WHERE filing_date >= '2017-01-01'
+AND connection ILIKE '%POLICE OFFICER%';"

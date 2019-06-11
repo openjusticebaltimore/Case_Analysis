@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1560226192560.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4072842472",
+    "id" : "2FC0AD06",
+    "lastKnownWriteTime" : 1560226188,
+    "last_content_update" : 1560226188,
+    "path" : "~/github/Case_Analysis/bail.R",
+    "project_path" : "bail.R",
+    "properties" : {
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

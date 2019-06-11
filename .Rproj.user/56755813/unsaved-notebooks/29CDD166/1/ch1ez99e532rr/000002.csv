@@ -1,0 +1,7 @@
+"0","drv <- dbDriver(""PostgreSQL"")"
+"0",""
+"0","con <- dbConnect(drv, dbname = ""mjcs"","
+"0","                 user = ""mjcs_ro"","
+"0","                 password = rstudioapi::askForPassword(""password""),"
+"0","                 port = 5432,"
+"0","                 host = ""mjcs.c7q0zmxhx4uo.us-east-1.rds.amazonaws.com"")"

@@ -1,0 +1,73 @@
+N/A: version "N/A -> N/A" is not yet installed.
+
+You need to run "nvm install N/A" to install it before using it.
+]0;~/github/Case_Analysis[?1034hCamilles-MacBook-Pro:Case_Analysis camille$ [KCamilles-MacBook-Pro:Case_Analysis camille$ git a[K[K add .
+]0;~/github/Case_AnalysisCamilles-MacBook-Pro:Case_Analysis camille$ git stat[Ksh
+Saved working directory and index state WIP on master: 1aec10d Add script to scrape list of judges
+]0;~/github/Case_AnalysisCamilles-MacBook-Pro:Case_Analysis camille$ git [K[K[K[Kgit stash list
+[?1h=stash@{0}: WIP on master: 1aec10d Add script to scrape list of judges[m
+[K[?1l>]0;~/github/Case_AnalysisCamilles-MacBook-Pro:Case_Analysis camille$ git stash branch[K[K[K[K[K[Kgraph
+usage: git stash list [<options>]
+   or: git stash show [<stash>]
+   or: git stash drop [-q|--quiet] [<stash>]
+   or: git stash ( pop | apply ) [--index] [-q|--quiet] [<stash>]
+   or: git stash branch <branchname> [<stash>]
+   or: git stash save [--patch] [-k|--[no-]keep-index] [-q|--quiet]
+		      [-u|--include-untracked] [-a|--all] [<message>]
+   or: git stash [push [--patch] [-k|--[no-]keep-index] [-q|--quiet]
+		       [-u|--include-untracked] [-a|--all] [-m <message>]
+		       [-- <pathspec>...]]
+   or: git stash clear
+]0;~/github/Case_AnalysisCamilles-MacBook-Pro:Case_Analysis camille$ gist[K[Kt stash branch graph
+Switched to a new branch 'graph'
+<stdin>:55: trailing whitespace.
+cops <- dbGetQuery(con, statement = 'SELECT 
+<stdin>:142: new blank line at EOF.
++
+warning: 2 lines add whitespace errors.
+On branch graph
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+	[32mnew file:   .gitignore[m
+	[32mnew file:   Case_Analysis.Rproj[m
+	[32mnew file:   cop_network_tidy.R[m
+	[32mnew file:   cops_to_graph.tsv[m
+	[32mnew file:   similar_names_cases-csv.openrefine.tar.gz[m
+	[32mnew file:   similar_names_cases-csv.tsv[m
+	[32mnew file:   similar_names_cases.csv[m
+
+Dropped refs/stash@{0} (fda8e61e56f29e6d9989905df4b81a0f4b43244a)
+]0;~/github/Case_AnalysisCamilles-MacBook-Pro:Case_Analysis camille$ git status
+On branch graph
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+	[32mnew file:   .gitignore[m
+	[32mnew file:   Case_Analysis.Rproj[m
+	[32mnew file:   cop_network_tidy.R[m
+	[32mnew file:   cops_to_graph.tsv[m
+	[32mnew file:   similar_names_cases-csv.openrefine.tar.gz[m
+	[32mnew file:   similar_names_cases-csv.tsv[m
+	[32mnew file:   similar_names_cases.csv[m
+
+]0;~/github/Case_AnalysisCamilles-MacBook-Pro:Case_Analysis camille$ git commit -m "Clean names to prep for graph analysis"
+[graph 705f56f] Clean names to prep for graph analysis
+ 7 files changed, 21891 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 Case_Analysis.Rproj
+ create mode 100644 cop_network_tidy.R
+ create mode 100644 cops_to_graph.tsv
+ create mode 100644 similar_names_cases-csv.openrefine.tar.gz
+ create mode 100644 similar_names_cases-csv.tsv
+ create mode 100644 similar_names_cases.csv
+]0;~/github/Case_AnalysisCamilles-MacBook-Pro:Case_Analysis camille$ git status
+On branch graph
+nothing to commit, working tree clean
+N/A: version "N/A -> N/A" is not yet installed.
+
+You need to run "nvm install N/A" to install it before using it.
+N/A: version "N/A -> N/A" is not yet installed.
+
+You need to run "nvm install N/A" to install it before using it.
+]0;~/github/Case_Analysis[?1034hCamilles-MacBook-Pro:Case_Analysis camille$ 

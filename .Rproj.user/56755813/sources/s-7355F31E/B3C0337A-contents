@@ -1,0 +1,91 @@
+---
+title: "cop network"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r}
+library(tidyverse)
+library(igraph)
+library(tidygraph)
+library(visNetwork)
+library(ggraph)
+```
+
+```{r}
+cops <- read_tsv("cops_to_graph.tsv") %>%
+  mutate_at(vars(name1, name2), str_to_title) %>%
+  rename(n_cases = n)
+
+cop_graph <- graph_from_data_frame(cops, directed = F) %>%
+  as_tbl_graph(directed = F) %>%
+  mutate(degree = centrality_degree(weights = n_cases, loops = F)) %>%
+  mutate(group = group_fast_greedy(weights = n_cases) %>% as.factor()) %>%
+  mutate(big_group = fct_lump(group, n = 10, ties.method = "average"))
+
+small_graph <- cop_graph %>%
+  activate("edges") %>%
+  filter(n_cases > 1) %>%
+  activate("nodes") %>%
+  mutate(mult_degree = centrality_degree(weights = n_cases, loops = F),
+         mult_group = group_fast_greedy(weights = n_cases) %>% 
+           as.factor() %>%
+           fct_lump(n = 10, ties.method = "average")) %>%
+  filter(mult_degree > 0)
+```
+
+Redo degree & grouping based on just pairs with more than 1 case together
+
+```{r}
+ggraph(small_graph, layout = "fr") +
+    geom_edge_link0(aes(edge_width = n_cases / 20), alpha = 0.5, color = "gray50") +
+    geom_node_point(aes(color = mult_group, size = mult_degree), alpha = 0.8) +
+    theme_graph() +
+    scale_size_area() +
+    rcartocolor::scale_color_carto_d(palette = "Vivid")
+```
+
+Different format for `visNetwork`.
+
+Rendering is pretty slow, so this filters to just cops in the top 10th of degree and/or betweenness. Both of these centrality measures are weighted by the number of cases on each graph edge.
+
+```{r}
+smaller_graph <- cop_graph %>%
+  mutate(btw = centrality_betweenness(n_cases, directed = F)) %>%
+  filter(ntile(btw, 10) == 10 | ntile(degree, 10) == 10)
+
+small_nodes <- smaller_graph %>%
+  activate("nodes") %>%
+  as_tibble() %>%
+  select(name, group = big_group, value = degree) %>%
+  mutate(id = row_number(),
+         title = name) %>%
+  rename(label = name)
+
+small_edges <- smaller_graph %>%
+  activate("edges") %>%
+  as_tibble() %>%
+  select(-case_list) %>%
+  rename(value = n_cases)
+
+visNetwork(small_nodes, small_edges)
+```
+
+
+
+
+
+I might try just building these straight in D3 myself.
+
+```{r}
+write_csv(small_nodes, "output/cop_graph_nodes.csv")
+write_csv(small_edges, "output/cop_graph_edges.csv")
+```
+

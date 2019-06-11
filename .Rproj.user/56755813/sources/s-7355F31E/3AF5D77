@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1560226195423.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1261449277",
+    "id" : "3AF5D77",
+    "lastKnownWriteTime" : 1560226188,
+    "last_content_update" : 1560226188,
+    "path" : "~/github/Case_Analysis/Source-Data.R",
+    "project_path" : "Source-Data.R",
+    "properties" : {
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

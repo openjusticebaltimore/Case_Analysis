@@ -1,0 +1,125 @@
+---
+title: "Cop network"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(DBI)
+library(RPostgreSQL)
+library(igraph)
+library(tidygraph)
+library(refinr)
+library(stringdist)
+library(ggraph)
+```
+
+```{r}
+drv <- dbDriver("PostgreSQL")
+
+con <- dbConnect(drv, dbname = "mjcs",
+                 user = "mjcs_ro",
+                 password = rstudioapi::askForPassword("password"),
+                 port = 5432,
+                 host = "mjcs.c7q0zmxhx4uo.us-east-1.rds.amazonaws.com")
+```
+
+```{sql connection=con}
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema='public'
+AND table_type='BASE TABLE'
+ORDER BY table_name;
+```
+
+```{sql connection=con, output.var="cops"}
+SELECT 
+  cases.case_number, 
+  case_type, 
+  filing_date, 
+  name, 
+  connection, 
+  officer_id,
+  COALESCE(name, officer_id) AS name2
+FROM cases
+INNER JOIN dscr_related_persons AS people
+ON cases.case_number = people.case_number
+WHERE filing_date >= '2017-01-01'
+AND connection ILIKE '%POLICE OFFICER%';
+```
+
+To take a look at: looks like typos in some officer IDs
+
+```{r}
+cops %>%
+  filter(!is.na(name)) %>%
+  distinct(name, officer_id) %>% 
+  arrange(name) %>%
+  group_by(name) %>%
+  mutate(n = n()) %>%
+  filter(n > 1)
+```
+
+trying to clean up names. sometimes first name is just listed as offr, off, ofc
+
+for now, keep only if there's 2 names, since removing Offr means some people are just last names. remove Jr, trailing single letter
+
+```{r}
+cop_df <- cops %>%
+  as_tibble() %>%
+  filter(!is.na(name)) %>%
+  arrange(case_number, name) %>%
+  mutate(name = name %>%
+           str_replace(",(?=\\w)", ", ") %>%
+           str_remove_all("[\\d\\.]") %>%
+           str_remove_all("\\bOF+(C|R)?") %>%
+           str_remove_all("\\bJR\\b") %>%
+           str_remove_all("III") %>%
+           str_remove("\\s(?=,)") %>%
+           str_trim() %>%
+           str_remove_all("\\s(\\w|II)$") %>%
+           str_remove_all("\\s{2,}") %>%
+           # str_remove("\\s\\w$") %>%
+           str_trim(side = "both")) %>%
+  filter(str_detect(name, "\\w\\s?,\\s\\w"))
+```
+
+distance matrix of difference between strings
+
+```{r}
+cop_names <- unique(cop_df$name) %>% sort()
+name_mtx <- stringdistmatrix(cop_names, cop_names, method = "dl", useNames = T)
+name_mtx[lower.tri(name_mtx)] <- NA
+similar <- as.data.frame(name_mtx) %>%
+  rownames_to_column(var = "name1") %>%
+  as_tibble() %>%
+  gather(key = name2, value = dist, -name1) %>%
+  filter(dist > 0 & dist < 4)
+
+sim_names <- similar %>%
+  # select(-dist) %>%
+  gather(key, value, -dist) %>%
+  distinct(value) %>%
+  pull(value)
+
+length(sim_names)
+```
+
+Deduplicate names using string distance matrix of name + id
+
+```{r}
+name_mtx[1:4, 1:4]
+```
+
+
+```{r}
+cop_df %>%
+  filter(name %in% sim_names) %>%
+  arrange(name)
+```
+

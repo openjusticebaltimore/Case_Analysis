@@ -1,0 +1,27 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1555384113660.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "192229A0",
+    "lastKnownWriteTime" : 1549900041,
+    "last_content_update" : 1549900041,
+    "path" : "~/github/Case_Analysis/cop_network_tidy.R",
+    "project_path" : "cop_network_tidy.R",
+    "properties" : {
+        "cursorPosition" : "40,37",
+        "marks" : "<:40,36\n>:40,37",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

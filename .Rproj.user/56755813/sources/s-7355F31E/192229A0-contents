@@ -1,0 +1,118 @@
+library(tidyverse)
+library(lubridate)
+library(DBI)
+library(RPostgreSQL)
+library(igraph)
+library(tidygraph)
+library(stringdist)
+library(ggraph)
+
+# create an PostgreSQL instance and create one connection.
+drv <- dbDriver("PostgreSQL")
+
+# open the connection using user, passsword, etc., as
+con <- dbConnect(drv, dbname = "mjcs",
+                 user = "mjcs_ro",
+                 password = rstudioapi::askForPassword("password"),
+                 port = 5432,
+                 host = "mjcs.c7q0zmxhx4uo.us-east-1.rds.amazonaws.com")
+
+cops <- dbGetQuery(con, statement = 'SELECT 
+                        name, cases.case_number
+                        FROM cases inner join dscr_related_persons on cases.case_number=dscr_related_persons.case_number
+                        WHERE connection in (\'WITNESS/POLICE OFFICER\',\'COMPLAINANT/POLICE OFFICER\')
+                        and cases.filing_date>\'2016-12-31\'
+                        ')
+
+# trying to clean up names
+# sometimes first name is just listed as offr, off, ofc
+# for now, keep only if there's 2 names, since removing Offr means some people are just last names
+# remove Jr, trailing single letter
+cop_df <- cops %>%
+  as_tibble() %>%
+  filter(!is.na(name)) %>%
+  arrange(case_number, name) %>%
+  mutate(name = name %>%
+           str_replace(",(?=\\w)", ", ") %>%
+           str_remove_all("[\\d\\.]") %>%
+           str_remove_all("\\bOF+(C|R)?") %>%
+           str_remove_all("\\bJR\\b") %>%
+           str_remove_all("III") %>%
+           str_remove("\\s(?=,)") %>%
+           str_trim() %>%
+           str_remove_all("\\s(\\w|II)$") %>%
+           str_remove_all("\\s{2,}") %>%
+           # str_remove("\\s\\w$") %>%
+           str_trim(side = "both")) %>%
+  filter(str_detect(name, "\\w\\s?,\\s\\w"))
+
+# instead of running all names through Open Refine, I'm making a distance matrix of difference between strings. Any pairs of names that are too similar then go into Open Refine
+cop_names <- unique(cop_df$name) %>% sort()
+name_mtx <- stringdistmatrix(cop_names, cop_names, method = "dl", useNames = T)
+name_mtx[lower.tri(name_mtx)] <- NA
+similar <- as.data.frame(name_mtx) %>%
+  rownames_to_column(var = "name1") %>%
+  as_tibble() %>%
+  gather(key = name2, value = dist, -name1) %>%
+  filter(dist > 0 & dist < 4)
+
+sim_names <- similar %>%
+  select(-dist) %>%
+  gather() %>%
+  distinct(value) %>%
+  pull(value)
+
+cop_df %>%
+  filter(name %in% sim_names) %>%
+  write_csv("similar_names_cases.csv")
+
+
+# cleaned up names with OpenRefine--exported table of original names + cleaned names as tsv
+# project info is in similar_names_cases-csv.openrefine.tar.gz
+refined <- read_tsv("similar_names_cases-csv.tsv")
+# replace original names with cleaned-up names where applicable
+cop2_df <- cop_df %>%
+  left_join(refined, by = c("name", "case_number")) %>%
+  mutate(cleaned = coalesce(cleaned, name)) %>%
+  select(name = cleaned, case_number)
+
+
+
+# join table of cops & case numbers with itself, create columns name1 and name2, keep rows with 2 different cops
+# need to also arrange each pair alphabetically to remove duplicates
+# i.e. case no. 123 with Flores Nelson + Hannah Parrish is the same as case no. 123 with Hannah Parrish + Flores Nelson
+# then summarize to the pair of cops, the number of times they appear on cases together, and the set of all case numbers for that pair
+# then make tidygraph
+cop2graph <- left_join(
+  cop2_df %>% rename(name1 = name),
+  cop2_df %>% rename(name2 = name),
+  by = "case_number"
+) %>%
+  filter(name1 != name2) %>%
+  select(name1, name2, case_number) %>%
+  arrange(name1, name2) %>%
+  mutate(row = row_number()) %>%
+  group_by(row, case_number) %>%
+  summarise(both = c(name1, name2) %>% sort() %>% paste(collapse = "_")) %>%
+  separate(both, into = c("name1", "name2"), sep = "_") %>%
+  ungroup() %>%
+  distinct(case_number, name1, name2) %>%
+  group_by(name1, name2) %>%
+  summarise(n = n(), case_list = str_flatten(case_number, collapse = ","))
+
+write_tsv(cop2graph, "cops_to_graph.tsv")
+
+cop2graph %>%
+  graph_from_data_frame(directed = F) %>%
+  as_tbl_graph(directed = F) %>%
+  mutate(degree = centrality_degree(weights = n, loops = F)) %>%
+  filter(ntile(degree, 5) == 5) %>%
+  mutate(grp = group_louvain(weights = n) %>% as.factor()) %>%
+  ggraph(layout = "fr") +
+    geom_edge_link0(alpha = 0.4, color = "gray30", edge_width = 0.5) +
+    geom_node_point(aes(color = grp, size = degree), alpha = 0.8) +
+    theme_graph() +
+    scale_size_area()
+
+
+

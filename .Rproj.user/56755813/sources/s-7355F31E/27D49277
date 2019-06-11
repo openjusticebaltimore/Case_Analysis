@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1560224008833.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3714903134",
+    "id" : "27D49277",
+    "lastKnownWriteTime" : 1549735876,
+    "last_content_update" : 1549735876,
+    "path" : "~/github/Case_Analysis/Demographics.R",
+    "project_path" : "Demographics.R",
+    "properties" : {
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -1,0 +1,46 @@
+"0","small_graph
+"
+"1","[38;5;246m# A tbl_graph: 722 nodes and 2200 edges
+[39m"
+"1","[38;5;246m#
+[39m"
+"1","[38;5;246m# An undirected simple graph with 41 components
+[39m"
+"1","[38;5;246m#
+[39m"
+"1","[38;5;246m# Node Data: 722 x 6 (active)[39m
+"
+"1","  name               degree group big_group mult_degree mult_group
+"
+"1","  [3m[38;5;246m<chr>[39m[23m               [3m[38;5;246m<dbl>[39m[23m [3m[38;5;246m<fct>[39m[23m [3m[38;5;246m<fct>[39m[23m           [3m[38;5;246m<dbl>[39m[23m [3m[38;5;246m<fct>[39m[23m     
+"
+"1","[38;5;250m1[39m Abdi, Ezekiel          12 5     5                   7 1         
+"
+"1","[38;5;250m2[39m Abrahams, Brandon      13 4     4                   3 5         
+"
+"1","[38;5;250m3[39m Acord, Ashley          13 2     2                   6 Other     
+"
+"1","[38;5;250m4[39m Adams, Tavon           14 1     1                  12 4         
+"
+"1","[38;5;250m5[39m Alexander, Danyell     11 1     1                   4 7         
+"
+"1","[38;5;250m6[39m Alfano, Anthony        31 2     2                  19 3         
+"
+"1","[38;5;246m# … with 716 more rows[39m
+"
+"1","[38;5;246m#
+[39m"
+"1","[38;5;246m# Edge Data: 2,200 x 4[39m
+"
+"1","   from    to n_cases case_list                       
+"
+"1","  [3m[38;5;246m<int>[39m[23m [3m[38;5;246m<int>[39m[23m   [3m[38;5;246m<dbl>[39m[23m [3m[38;5;246m<chr>[39m[23m                           
+"
+"1","[38;5;250m1[39m     1   323       2 0B02343726,5B02348834           
+"
+"1","[38;5;250m2[39m     1   649       3 0B02342641,0B02343712,0B02343726
+"
+"1","[38;5;250m3[39m     1   484       2 1B02365896,3B02366206           
+"
+"1","[38;5;246m# … with 2,197 more rows[39m
+"

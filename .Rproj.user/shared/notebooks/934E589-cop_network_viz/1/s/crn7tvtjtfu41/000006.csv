@@ -1,0 +1,6 @@
+"0","ggraph(small_graph, layout = ""fr"") +"
+"0","    geom_edge_link0(aes(edge_width = n_cases / 20), alpha = 0.5, color = ""gray50"") +"
+"0","    geom_node_point(aes(color = mult_group, size = mult_degree), alpha = 0.8) +"
+"0","    theme_graph() +"
+"0","    scale_size_area() +"
+"0","    rcartocolor::scale_color_carto_d(palette = ""Vivid"")"
