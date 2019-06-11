@@ -68,5 +68,5 @@ ggraph(cop.relations) +
   geom_node_text(aes(label = name), size = 8, repel = TRUE) +
   scale_color_brewer(palette = "Set1") +
   theme_graph() +
-  labs(title = "A Song of Ice and Fire character network",
+  labs(title = "",
        subtitle = "Nodes are colored by group")
