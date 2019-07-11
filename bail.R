@@ -27,6 +27,7 @@ require("lubridate")
 # create an PostgreSQL instance and create a connection
 drv <- dbDriver("PostgreSQL")
 
+
 # open the connection using user, passsword, etc., as
 con <- dbConnect(drv, dbname = "mjcs",
                  port=5432,
@@ -47,19 +48,31 @@ db.colnames<-dbGetQuery(con,
 #################
 # Bail and Bond #
 #################
-# dbGetQuery(con, statement = '
-#    
-#                    select * from dsk8_bail_and_bond limit 10')
+bailhead <- dbGetQuery(con, statement = '
+
+                   select * from dsk8_bail_and_bond limit 10')
 dsk8.source<-dbGetQuery(con, statement = '
    
                    select
          c.filing_date,
          c.court,
+         ch.description description,
+                        ch.disposition,
+                        ch.cjis_traffic_code cjis_code,
+                        ch.plea,
+                        ch.sentence_years jail_term_years,
+                        ch.sentence_months jail_term_months,
+                        ch.sentence_days jail_term_days,
+                        nch.charges,
+
          bb.*
                    from
                    cases c
                    inner join dsk8  on dsk8.case_number=c.case_number
                    inner join dsk8_bail_and_bond bb on bb.case_number=c.case_number
+                   left join dsk8_charges ch on ch.case_number=c.case_number and ch.charge_number=1
+                   left join (select case_number, count(*) charges from dsk8_charges group by case_number) nch on nch.case_number=c.case_number
+
 where 1=1 and c.filing_date>\'2016-12-01\'
                    ')
 
@@ -67,15 +80,35 @@ dscr.source<-dbGetQuery(con, statement = '
                    select
          c.filing_date,
          c.court,
+         ch.charge_description description,
+                        ch.disposition,
+                        ch.cjis_code,
+                        ch.plea,
+                        ch.jail_term_years,
+                        ch.jail_term_months,
+                        ch.jail_term_days,
+                        nch.charges,
+
+bb.date set_date,
+
          bb.*
          
                    from
                    cases c
                    inner join dscr  on dscr.case_number=c.case_number
                    inner join dscr_bail_events bb on bb.case_number=c.case_number
+                   left join dscr_charges ch on ch.case_number=c.case_number and ch.charge_number=1
+                   left join (select case_number, count(*) charges from dscr_charges group by case_number) nch on nch.case_number=c.case_number
 where 1=1 
 and c.filing_date>\'2016-12-01\'
                    ')
+
+# charges <- dbGetQuery(con, statement = '
+#                    select * from dscr_charges order by case_number')
+#                    
+# case.charges <- charges %>%
+#   group_by(case_number) %>%
+#   summarise(n.charges=n())
 
 demo.source<-dbGetQuery(con, statement = '
                    select 
@@ -88,34 +121,102 @@ demo.source<-dbGetQuery(con, statement = '
                    and c.filing_date>\'2016-12-01\'
                         ') %>% unique()
 
-
 cases <- rbind(select(dscr.source,
                     case_number,
                     filing_date,
-                    court),
+                    court,
+                    set_date,
+                    bail_amount,
+                    description,
+                    cjis_code,
+                    charges),
                select(dsk8.source,
                       case_number,
                       filing_date,
-                      court)) %>% unique()
+                      court,
+                      set_date,
+                      bail_amount,
+                      description,
+                      cjis_code,
+                      charges)) %>% unique() %>%
+  arrange(case_number,
+          desc(set_date)) %>%
+  filter(!duplicated(case_number)) %>%
+left_join(., demo.source) %>%
+  mutate(race=factor(race, levels = c("WHITE, CAUCASIAN, ASIATIC INDIAN, ARAB" ,       
+                     "BLACK, AFRICAN AMERICAN"   ,                    
+                     "AMERICAN INDIAN, ALASKA NATIVE"          ,      
+                     "UNKNOWN, OTHER"                           ,     
+                     "ASIAN, NATIVE HAWAIIAN, OTHER PACIFIC ISLANDER", NA))
+) 
 
-bond <- rbind(select(dsk8.source,
-               case_number,
-               bail_amount),
-select(dscr.source,
-               case_number,
-               bail_amount)) %>%
-  group_by(case_number) %>%
-  summarise(bail_amount=sum(bail_amount, na.rm=T))
+sent <-
+  read.csv("C:/OJB/sentencing_guidelines_2018.csv",
+         stringsAsFactors = F,
+         strip.white = T) %>%
+  mutate(cjis_code=gsub("-"," ",cjis_code))
 
-cases.bond <- left_join(left_join(cases,bond),demo.source) 
+cases.sent <- left_join(cases,sent)
 
-bond.summary <- cases.bond %>%
-  group_by(race) %>%
-  summarise(bond=sum(bail_amount,na.rm=T),
-            cases=n())
+unique(filter(cases.sent, is.na(seriousness))$cjis_code)
+
+bond.summary <- cases.sent %>%
+  group_by(month=floor_date(filing_date,"month"),
+           race,
+           seriousness) %>%
+  dplyr::summarise(bond=sum(bail_amount,na.rm=T),
+            cases=n(),
+            bonded.cases=sum(bail_amount!=0)) %>%
+  mutate(pct.bonded=bonded.cases/cases,
+         av.bond=bond/bonded.cases)
+
 n.cases <- bond.summary$cases
+
 names(n.cases) <- bond.summary$race
 bonds<-bond.summary$bond
 names(bonds) <- bond.summary$race
+bonded<-bond.summary$bonded.cases
+names(bonded) <- bond.summary$race
+
 pie(bonds[order(bonds)])
+pie(bonded[order(bonded)])
+
 pie(n.cases[order(n.cases)])
+
+bail.set.reg <- lm(data = cases[cases$bail_amount!=0,],bail_amount~race*sex)
+
+source.bond<- left_join(cases.sent, source_data[,c("case_number", 
+                                                   "ASSISTANT STATES ATTORNEY", 
+                                                   "SPECIAL PROSECUTING ATTORNEY", 
+                                                   "WITNESS/POLICE OFFICER", 
+                                                   "COMPLAINANT/POLICE OFFICER", 
+                                                   "BAILBONDSMAN", 
+                                                   "charge_description", 
+                                                   "disposition", 
+                                                   "plea", 
+                                                   "jail_term_years", 
+                                                   "jail_term_months", 
+                                                   "jail_term_days")]) %>%
+  mutate(cjis_code=as.factor(cjis_code))
+
+bond.reg<-
+lm(data = source.bond[source.bond$bail_amount!=0,],
+   bail_amount~
+     race*sex 
+   +
+     `ASSISTANT STATES ATTORNEY`
+   +
+     seriousness)
+
+term.reg<-
+  lm(data = source.bond,
+     jail_term_days~
+       race*sex +
+       `ASSISTANT STATES ATTORNEY` +
+       seriousness
+  )
+term.reg.co <- (summary(term.reg)$coefficients)
+rows <- row.names(term.reg.co)
+
+term.reg.co <- as.data.frame(term.reg.co) %>%
+  arrange(desc(abs(`t value`)))

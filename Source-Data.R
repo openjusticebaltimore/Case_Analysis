@@ -1,4 +1,7 @@
+# Query to get a wide structured dataset of district criminal cases with defendant demographics and names of related cops, prosecutors, and bail bondsman
+# If a case has multiple related persons of the same type, this query agggregates them in a text string separated by semi colons
 
+# List the types of related persons 
 
 # cons <- dbGetQuery(con, statement = '
 #                    select 
@@ -11,13 +14,15 @@
 #                    where 1=1 
 #                    limit 10')
 
-dscr_charges <- dbGetQuery(con, statement = '
-                   select *
-                   from
-dscr_charges')
+
+# dscr_charges <- dbGetQuery(con, statement = '
+#                    select *
+#                    from
+# dscr_charges')
 
 
-# Do it with SQL
+
+# Here is a SQL query that pulls the wide dataset that shouldn't need much munging to run regressions and other analyses on
 
 source_data<-dbGetQuery(con, statement = "
                    select 
@@ -55,10 +60,10 @@ left join (select case_number, count(*) ncharges from dscr_charges group by case
 left join dscr_charges ch on ch.case_number=c.case_number and ch.charge_number=1 
 
                 where 1=1 
-and sa.name is not null
+and c.filing_date>'2018-01-01'
+and c.filing_date<'2019-01-01'
 
-                   limit 10")
+                   ")
 
 
-# Do it with R
-
+# It may be interesting to write a few simpler queries of the various tables and do the subsetting & joining with dplyr (or base R)

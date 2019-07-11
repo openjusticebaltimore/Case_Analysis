@@ -7,7 +7,7 @@ library(ggraph)
 # install.packages("tidygraph")
  library(tidygraph)
 # library(reshape2)
-
+``
 pwd <- ""
 # create an PostgreSQL instance and create one connection.
 drv <- dbDriver("PostgreSQL")
@@ -27,6 +27,8 @@ and cases.filing_date>\'2016-12-31\'
                         ')
 cops.cops <- arrange(cops.cops,case_number)%>% filter(!is.na(name))
 
+
+
 # cops.cops$Relation <- ifelse(!duplicated(cops.cops$case_number),1,NA)
 # while (sum(is.na(cops.cops$Relation))>0) {
 #   cops.cops$Relation <- ifelse(duplicated(cops.cops$case_number),lag(cops.cops$Relation)+1,cops.cops$Relation)
@@ -35,9 +37,9 @@ cops.cops <- arrange(cops.cops,case_number)%>% filter(!is.na(name))
 # cops.wide <- dcast(cops.cops,case_number~Relation, value.var = "name")
 
 cops.base <- cops.cops %>%
-  group_by(name) %>%
-  summarise(count=n()) %>%
-  filter(count>100)
+  dplyr::group_by(name) %>%
+  dplyr::summarise(count=n()) %>%
+  dplyr::filter(count>100)
 cops.base <- unique(cops.base$name)
 
 cop.relations <- left_join(dplyr::rename(cops.cops,name1=name) ,dplyr::rename(cops.cops,name2=name)) %>%
@@ -62,11 +64,11 @@ cop.graph <- cop.relations %>%
   ggraph(layout = 'kk') 
 
 ggraph(cop.relations) + 
-  geom_edge_density(aes(fill = weight)) +
+  geom_edge_density(aes(fill = weight)) #+
   geom_edge_link(aes(width = weight), alpha = 0.2) + 
   geom_node_point(aes(color = factor(group)), size = 10) +
   geom_node_text(aes(label = name), size = 8, repel = TRUE) +
   scale_color_brewer(palette = "Set1") +
   theme_graph() +
-  labs(title = "",
+  labs(title = "Cop Network",
        subtitle = "Nodes are colored by group")
