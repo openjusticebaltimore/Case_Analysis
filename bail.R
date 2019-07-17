@@ -44,13 +44,20 @@ db.colnames<-dbGetQuery(con,
            FROM
            INFORMATION_SCHEMA.COLUMNS
            ")
-
+events<-dbGetQuery(con, 
+                        statement ="
+           SELECT *
+           FROM
+           dsk8_events
+           where comment like \'%BAIL%\'
+          
+           and date>\'2015-06-30\'")
 #################
 # Bail and Bond #
 #################
-bailhead <- dbGetQuery(con, statement = '
-
-                   select * from dsk8_bail_and_bond limit 10')
+# bailhead <- dbGetQuery(con, statement = '
+# 
+#                    select * from dsk8_bail_and_bond limit 10')
 dsk8.source<-dbGetQuery(con, statement = '
    
                    select
@@ -73,7 +80,7 @@ dsk8.source<-dbGetQuery(con, statement = '
                    left join dsk8_charges ch on ch.case_number=c.case_number and ch.charge_number=1
                    left join (select case_number, count(*) charges from dsk8_charges group by case_number) nch on nch.case_number=c.case_number
 
-where 1=1 and c.filing_date>\'2016-12-01\'
+where 1=1 and c.filing_date>\'2015-06-30\'
                    ')
 
 dscr.source<-dbGetQuery(con, statement = '
@@ -100,7 +107,7 @@ bb.date set_date,
                    left join dscr_charges ch on ch.case_number=c.case_number and ch.charge_number=1
                    left join (select case_number, count(*) charges from dscr_charges group by case_number) nch on nch.case_number=c.case_number
 where 1=1 
-and c.filing_date>\'2016-12-01\'
+and c.filing_date>\'2015-06-30\'
                    ')
 
 # charges <- dbGetQuery(con, statement = '
@@ -118,7 +125,7 @@ demo.source<-dbGetQuery(con, statement = '
                    cases c 
                    inner join dscr_defendants def on c.case_number=def.case_number 
                    where 1=1 
-                   and c.filing_date>\'2016-12-01\'
+                   and c.filing_date>\'2015-06-30\'
                         ') %>% unique()
 
 cases <- rbind(select(dscr.source,
@@ -129,7 +136,9 @@ cases <- rbind(select(dscr.source,
                     bail_amount,
                     description,
                     cjis_code,
-                    charges),
+                    charges,
+                    release_date,
+                    set_date),
                select(dsk8.source,
                       case_number,
                       filing_date,
@@ -138,9 +147,11 @@ cases <- rbind(select(dscr.source,
                       bail_amount,
                       description,
                       cjis_code,
-                      charges)) %>% unique() %>%
+                      charges,
+                      release_date,
+                      set_date)) %>% unique() %>%
   arrange(case_number,
-          desc(set_date)) %>%
+          set_date) %>%
   filter(!duplicated(case_number)) %>%
 left_join(., demo.source) %>%
   mutate(race=factor(race, levels = c("WHITE, CAUCASIAN, ASIATIC INDIAN, ARAB" ,       
@@ -160,31 +171,6 @@ cases.sent <- left_join(cases,sent)
 
 unique(filter(cases.sent, is.na(seriousness))$cjis_code)
 
-bond.summary <- cases.sent %>%
-  group_by(month=floor_date(filing_date,"month"),
-           race,
-           seriousness) %>%
-  dplyr::summarise(bond=sum(bail_amount,na.rm=T),
-            cases=n(),
-            bonded.cases=sum(bail_amount!=0)) %>%
-  mutate(pct.bonded=bonded.cases/cases,
-         av.bond=bond/bonded.cases)
-
-n.cases <- bond.summary$cases
-
-names(n.cases) <- bond.summary$race
-bonds<-bond.summary$bond
-names(bonds) <- bond.summary$race
-bonded<-bond.summary$bonded.cases
-names(bonded) <- bond.summary$race
-
-pie(bonds[order(bonds)])
-pie(bonded[order(bonded)])
-
-pie(n.cases[order(n.cases)])
-
-bail.set.reg <- lm(data = cases[cases$bail_amount!=0,],bail_amount~race*sex)
-
 source.bond<- left_join(cases.sent, source_data[,c("case_number", 
                                                    "ASSISTANT STATES ATTORNEY", 
                                                    "SPECIAL PROSECUTING ATTORNEY", 
@@ -197,7 +183,66 @@ source.bond<- left_join(cases.sent, source_data[,c("case_number",
                                                    "jail_term_years", 
                                                    "jail_term_months", 
                                                    "jail_term_days")]) %>%
-  mutate(cjis_code=as.factor(cjis_code))
+  mutate(cjis_code=as.factor(cjis_code),
+         month=floor_date(filing_date,"month"),
+         year=year(filing_date),
+         implementation=case_when(set_date<as.Date("2017-07-01")~"Before Rule Change",
+                                  set_date>as.Date("2017-06-30")~"After Rule Change",
+                                  TRUE~NA_character_))
+
+summarize.bond <- function(...){
+   source.bond %>%
+  group_by(...) %>%
+  dplyr::summarise(bond=sum(bail_amount,na.rm=T),
+            cases=n(),
+            bonded.cases=sum(bail_amount!=0),
+            sentenced_jail=sum(!is.na(jail_term_days) & jail_term_days!=0),
+            jail_term_days=sum(jail_term_days, na.rm=T)) %>%
+  mutate(pct.bonded=bonded.cases/cases,
+         av.bond=bond/bonded.cases,
+         pct.sentenced=sentenced_jail/cases,
+         av.term=jail_term_days/sentenced_jail)
+}
+
+s <- summarize.bond(month,
+                      race,
+                      seriousness)
+
+bond.summary.year <- summarize.bond(year,
+                                    race)
+
+bond.summary.month <- summarize.bond(month,
+                                    race)
+
+lapply(unique(bond.summary.year$year),function(m){
+  df<-filter(bond.summary.year,year==m)
+  bonds<-df$bond
+  names(bonds) <- df$race
+  names(bonds)[bonds/sum(bonds,na.rm=T)<.01] =""
+  pie(bonds[order(bonds)],main = m)})
+
+ggplot(data=filter(source.bond,bail_amount!=0 & !is.na(bail_amount) & !is.na(fel_mis)),aes(x=fel_mis,y=bail_amount,fill=factor(implementation,levels=c("Before Rule Change", "After Rule Change")))) +
+  geom_bar(stat = "summary", fun.y = "mean", position = "dodge") + scale_y_continuous(label = scales::dollar) + labs(y="Bail Amount", x="", title = "Average Bail Amount at Initial Bail Hearing", fill="")
+
+
+# n.cases <- bond.summary$cases
+# 
+# names(n.cases) <- bond.summary$race
+# bonds<-bond.summary$bond
+# names(bonds) <- bond.summary$race
+# bonded<-bond.summary$bonded.cases
+# names(bonded) <- bond.summary$race
+
+# pie(bonds[order(bonds)])
+# pie(bonded[order(bonded)])
+# 
+# pie(n.cases[order(n.cases)])
+
+bail.set.reg <- lm(data = cases[cases$bail_amount!=0,],bail_amount~race*sex)
+
+
+
+
 
 bond.reg<-
 lm(data = source.bond[source.bond$bail_amount!=0,],
@@ -220,3 +265,4 @@ rows <- row.names(term.reg.co)
 
 term.reg.co <- as.data.frame(term.reg.co) %>%
   arrange(desc(abs(`t value`)))
+
